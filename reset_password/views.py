@@ -1,26 +1,12 @@
 from django.shortcuts import render
-from django.http import JsonResponse
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-import stytch
+from .stytch_client import get_stytch_client
 import logging
-import json
 
 # Set up logging
 logger = logging.getLogger(__name__)
+client = get_stytch_client()
 
-# Initialize Stytch client
-def get_stytch_client():
-    """Initialize and return Stytch client"""
-    if not settings.STYTCH_PROJECT_ID or not settings.STYTCH_SECRET:
-        raise ValueError("Stytch credentials not configured. Please check your .env file.")
-    
-    return stytch.Client(
-        project_id=settings.STYTCH_PROJECT_ID,
-        secret=settings.STYTCH_SECRET,
-        environment=settings.STYTCH_PROJECT_ENV
-    )
 
 
 @require_http_methods(["GET", "POST"])
@@ -45,10 +31,6 @@ def reset_password(request):
     if request.method == 'GET':
         # Validate token with Stytch before showing the form
         try:
-            client = get_stytch_client()
-            
-            # For multi-tenant password resets, we need to validate the token
-            # This is a preliminary check - the actual reset happens on POST
             context = {
                 'token': token,
                 'stytch_token_type': stytch_token_type,
@@ -93,20 +75,10 @@ def reset_password(request):
         
         try:
             client = get_stytch_client()
-            
-            # Reset the password using Stytch
-            if stytch_token_type == "multi_tenant_passwords":
-                # For multi-tenant organizations
-                response = client.passwords.reset_by_email(
-                    token=token,
-                    password=new_password
-                )
-            else:
-                # For regular password reset
-                response = client.passwords.reset_by_email(
-                    token=token,
-                    password=new_password
-                )
+            response = client.passwords.email.reset(
+                password_reset_token=token,
+                password=new_password
+            )
             
             logger.info(f"Password reset successful for token: {token[:10]}...")
             print(f"Stytch response: {response}")
@@ -141,30 +113,3 @@ def reset_password(request):
                 'token': token,
                 'stytch_token_type': stytch_token_type
             })
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def password_reset_webhook(request):
-    """
-    Webhook endpoint for Stytch password reset events
-    This can be used to handle additional logic when passwords are reset
-    """
-    try:
-        payload = json.loads(request.body)
-        event_type = payload.get('type')
-        
-        logger.info(f"Received Stytch webhook: {event_type}")
-        
-        if event_type == 'password.reset_confirmed':
-            # Handle successful password reset
-            user_id = payload.get('data', {}).get('user_id')
-            logger.info(f"Password successfully reset for user: {user_id}")
-            
-            # Add any additional logic here (e.g., send confirmation email, log activity, etc.)
-            
-        return JsonResponse({'status': 'success'})
-        
-    except Exception as e:
-        logger.error(f"Webhook processing error: {e}")
-        return JsonResponse({'status': 'error'}, status=400)

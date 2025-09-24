@@ -8,7 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.9"
 django = "^4.2"
-stytch = "^13.23.0"
+stytch = {extras = ["b2b"], version = "^13.23.0"}
 python-dotenv = "^1.1.1"
 
 [tool.poetry.group.dev.dependencies]
