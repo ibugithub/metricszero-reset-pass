@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "metricszero-reset-pass"
+version = "0.1.0"
+description = "Django project for password reset functionality"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+django = "^4.2"
+stytch = "^13.23.0"
+python-dotenv = "^1.1.1"
+
+[tool.poetry.group.dev.dependencies]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
